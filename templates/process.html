@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GPU状态监控 - 进程监控</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <h2 style="text-align: center;">GPU状态监控</h2>
+        <ul class="nav nav-tabs">
+            <li>
+                <a href="/index.html">状态监控</a>
+            </li>
+            <li class="active">
+                <a href="/process.html">进程监控</a>
+            </li>
+            <li>
+                <a href="/smi.html">nvidia-smi</a>
+            </li>
+        </ul>
+        <div style="margin-top: 1em;">
+            <table class="table table-bordered table-striped table-hover">
+            </table>
+        </div>
+        <div class="alert alert-warning" role="alert">
+            <strong>注意！</strong>信息获取需要时间，勿频繁刷新，<span id="refresh-time"></span>s后自动更新。
+        </div>
+    </div>
+    <script src="/static/js/jquery-1.12.4.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script>
+        $(function () {
+            function query() {
+                $.ajax({
+                    url: "/process",
+                    type: "get",
+                    timeout: 5000,
+                    success: function (data) {
+                        let tbody = `<tr>
+                                        <th>GPU</th>
+                                        <th>进程号(PID)</th>
+                                        <th>进程名称</th>
+                                        <th>显存占用</th>
+                                        <th>类型</th>
+                                        <th>用户名</th>
+                                      </tr>`;
+                        for (let i = 0; i < data.length; i++) {
+                            tbody += `<tr>
+                                        <td>${data[i]["GPU"]}</td>
+                                        <td>${data[i]["PID"]}</td>
+                                        <td>${data[i]["Process Name"]}</td>
+                                        <td>${data[i]["GPU Memory Usage"]}</td>
+                                        <td>${data[i]["Type"]}</td>
+                                        <td>${data[i]["User"]}</td>
+                                       </tr>`;
+                        }
+                        $("table").html(tbody);
+                    },
+                    error: function (xhr, textStatus) {
+                        $(".container").append(`
+                            <div id="error" class="alert alert-danger" role="alert">
+                                <strong>错误！</strong>${textStatus}
+                            </div>
+                        `);
+                    },
+                });
+            }
+
+            const interval = 10;  // 刷新间隔
+            let countDown = interval;
+            function refresh() {
+                countDown--;
+                if (countDown === 0) {
+                    countDown = interval;
+                    $("#error").remove();
+                    query();
+                }
+                $("#refresh-time").html(countDown);
+            }
+            // 首次获取信息
+            query();
+            setInterval(() => {
+                refresh();
+            }, 1000);
+        });
+    </script>
+</body>
+
+</html>
