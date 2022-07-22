@@ -27,8 +27,8 @@
             <table class="table table-bordered table-striped table-hover">
             </table>
         </div>
-        <div class="alert alert-warning" role="alert">
-            <strong>注意！</strong>信息获取需要时间，勿频繁刷新，<span id="refresh-time"></span>s后自动更新。
+        <div class="alert alert-success" role="alert">
+            <strong>注意！</strong>此页面 <span id="refresh-time"></span>s 后自动更新。
         </div>
     </div>
     <script src="/static/js/jquery-1.12.4.min.js"></script>
@@ -61,23 +61,15 @@
                         }
                         $("table").html(tbody);
                     },
-                    error: function (xhr, textStatus) {
-                        $(".container").append(`
-                            <div id="error" class="alert alert-danger" role="alert">
-                                <strong>错误！</strong>${textStatus}
-                            </div>
-                        `);
-                    },
                 });
             }
 
-            const interval = 10;  // 刷新间隔
+            const interval = 3;  // 刷新间隔
             let countDown = interval;
             function refresh() {
                 countDown--;
                 if (countDown === 0) {
                     countDown = interval;
-                    $("#error").remove();
                     query();
                 }
                 $("#refresh-time").html(countDown);

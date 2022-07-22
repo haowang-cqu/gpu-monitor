@@ -71,9 +71,10 @@
           containLabel: true
         },
         xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: []
+          type: 'time',
+          splitLine: {
+            show: false
+          }
         },
         yAxis: {
           type: 'value'
@@ -97,9 +98,10 @@
           containLabel: true
         },
         xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: []
+          type: 'time',
+          splitLine: {
+            show: false
+          }
         },
         yAxis: {
           type: 'value'
@@ -123,9 +125,10 @@
           containLabel: true
         },
         xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: []
+          type: 'time',
+          splitLine: {
+            show: false
+          }
         },
         yAxis: {
           type: 'value'
@@ -149,9 +152,10 @@
           containLabel: true
         },
         xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: []
+          type: 'time',
+          splitLine: {
+            show: false
+          }
         },
         yAxis: {
           type: 'value'
@@ -165,14 +169,136 @@
         { chart: temperatureChart, option: temperatureChartOption },
         { chart: powerChart, option: powerChartOption }
       ];
-      let attached_gpus = 0;
+
+      const longest = 60 * 60 * 1000;  // 最多只保留一个小时的历史数据
+
+      function refreshChart() {
+        // 删除超过历史长度的数据
+        memoryUsedChartOption.series.forEach(value => {
+          let last = value.data[value.data.length - 1].timestamp;
+          while (true) {
+            if (last - value.data[0].timestamp > longest) {
+              value.shift();
+            }
+            else {
+              break;
+            }
+          }
+        });
+        powerChartOption.series.forEach(value => {
+          let last = value.data[value.data.length - 1].timestamp;
+          while (true) {
+            if (last - value.data[0].timestamp > longest) {
+              value.shift();
+            }
+            else {
+              break;
+            }
+          }
+        });
+        utilizationChartOption.series.forEach(value => {
+          let last = value.data[value.data.length - 1].timestamp;
+          while (true) {
+            if (last - value.data[0].timestamp > longest) {
+              value.shift();
+            }
+            else {
+              break;
+            }
+          }
+        });
+        temperatureChartOption.series.forEach(value => {
+          let last = value.data[value.data.length - 1].timestamp;
+          while (true) {
+            if (last - value.data[0].timestamp > longest) {
+              value.shift();
+            }
+            else {
+              break;
+            }
+          }
+        });
+        chartList.forEach(value => {
+          value.chart.hideLoading();
+          value.chart.setOption(value.option);
+        });
+      }
+
+      function query() {
+        $.ajax({
+          url: "/status",
+          type: "get",
+          success: function (data) {
+            let date = new Date(data.timestamp);
+            data.status.forEach((value, index) => {
+              memoryUsedChartOption.series[index].data.push({
+                value: [date, value.memory_used],
+                timestamp: data.timestamp
+              });
+              utilizationChartOption.series[index].data.push({
+                value: [date, value.utilization],
+                timestamp: data.timestamp
+              });
+              temperatureChartOption.series[index].data.push({
+                value: [date, value.temperature],
+                timestamp: data.timestamp
+              });
+              powerChartOption.series[index].data.push({
+                value: [date, value.power_draw],
+                timestamp: data.timestamp
+              });
+            });
+            refreshChart();
+          },
+        });
+      }
+
+      function getHistory() {
+        $.ajax({
+          url: "/status-history",
+          type: "get",
+          cache: false,
+          success: function (data) {
+            data.forEach(gpuStatus => {
+              let date = new Date(gpuStatus.timestamp);
+              gpuStatus.status.forEach((value, index) => {
+                memoryUsedChartOption.series[index].data.push({
+                  value: [date, value.memory_used],
+                  timestamp: data.timestamp
+                });
+                utilizationChartOption.series[index].data.push({
+                  value: [date, value.utilization],
+                  timestamp: data.timestamp
+                });
+                temperatureChartOption.series[index].data.push({
+                  value: [date, value.temperature],
+                  timestamp: data.timestamp
+                });
+                powerChartOption.series[index].data.push({
+                  value: [date, value.power_draw],
+                  timestamp: data.timestamp
+                });
+              });
+            });
+            refreshChart();
+            setInterval(() => {
+              query();
+            }, 3000);
+          },
+        });
+      }
+
+      // 显示加载动画
+      chartList.forEach(value => {
+        value.chart.setOption(value.option);
+        value.chart.showLoading();
+      });
       $.ajax({
-        url: "/status",
+        url: "/gpu-number",
         type: "get",
-        timeout: 1000,
+        cache: false,
         success: function (data) {
-          attached_gpus = data.attached_gpus;
-          for (let i = 0; i < attached_gpus; i++) {
+          for (let i = 0; i < parseInt(data); i++) {
             chartList.forEach(value => {
               value.option.legend.data.push(`GPU${i}`);
               value.option.series.push({
@@ -180,46 +306,13 @@
                 type: "line",
                 data: [],
                 symbol: 'none',
+                // smooth: true,
               });
             });
           }
-          data.status.forEach((value, index) => {
-            memoryUsedChartOption.series[index].data.push(value.memory_used);
-            utilizationChartOption.series[index].data.push(value.utilization);
-            temperatureChartOption.series[index].data.push(value.temperature);
-            powerChartOption.series[index].data.push(value.power_draw);
-          });
-          chartList.forEach(value => {
-            value.option.xAxis.data.push(data.timestamp);
-            value.chart.setOption(value.option);
-          });
+          getHistory();
         },
       });
-
-      const interval = 3;
-      function query() {
-        $.ajax({
-          url: "/status",
-          type: "get",
-          timeout: 1000,
-          success: function (data) {
-            data.status.forEach((value, index) => {
-              memoryUsedChartOption.series[index].data.push(value.memory_used);
-              utilizationChartOption.series[index].data.push(value.utilization);
-              temperatureChartOption.series[index].data.push(value.temperature);
-              powerChartOption.series[index].data.push(value.power_draw);
-            });
-            chartList.forEach(value => {
-              value.option.xAxis.data.push(data.timestamp);
-              value.chart.setOption(value.option);
-            });
-          },
-        });
-      }
-
-      setInterval(() => {
-        query();
-      }, interval * 1000);
     });
   </script>
 </body>
