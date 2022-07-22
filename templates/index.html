@@ -1,29 +1,227 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GPU状态监控 - 状态监控</title>
-    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
-  </head>
-  <body>
-    <div class="container">
-        <h2 style="text-align: center;">GPU状态监控</h2>
-        <ul class="nav nav-tabs">
-            <li class="active">
-                <a href="/index.html">状态监控</a>
-            </li>
-            <li>
-                <a href="/process.html">进程监控</a>
-            </li>
-            <li>
-                <a href="/smi.html">nvidia-smi</a>
-            </li>
-        </ul>
-        
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GPU状态监控 - 状态监控</title>
+  <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+  <style>
+    .card {
+      margin-top: 1em;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2 style="text-align: center;">GPU状态监控</h2>
+    <ul class="nav nav-tabs">
+      <li class="active">
+        <a href="/index.html">状态监控</a>
+      </li>
+      <li>
+        <a href="/process.html">进程监控</a>
+      </li>
+      <li>
+        <a href="/smi.html">nvidia-smi</a>
+      </li>
+    </ul>
+    <div class="card">
+      <div id="memory-used-chart" style="width: 100%; height: 300px;"></div>
     </div>
-    <script src="/static/js/jquery-1.12.4.min.js"></script>
-    <script src="/static/js/bootstrap.min.js"></script>
-  </body>
+    <div class="card">
+      <div id="utilization-chart" style="width: 100%; height: 300px;"></div>
+    </div>
+    <div class="card">
+      <div id="temperature-chart" style="width: 100%; height: 300px;"></div>
+    </div>
+    <div class="card">
+      <div id="power-chart" style="width: 100%; height: 300px;"></div>
+    </div>
+  </div>
+  <script src="/static/js/jquery-1.12.4.min.js"></script>
+  <script src="/static/js/bootstrap.min.js"></script>
+  <script src="/static/js/echarts.min.js"></script>
+  <script>
+    $(function () {
+      let memoryUsedChart = echarts.init(document.getElementById("memory-used-chart"));
+      let utilizationChart = echarts.init(document.getElementById("utilization-chart"));
+      let temperatureChart = echarts.init(document.getElementById("temperature-chart"));
+      let powerChart = echarts.init(document.getElementById("power-chart"));
+      // 指定图表的配置项和数据
+      let memoryUsedChartOption = {
+        title: {
+          text: '显存占用 (MB)'
+        },
+        tooltip: {
+          trigger: 'axis'
+        },
+        legend: {
+          data: []
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: []
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: []
+      };
+      let utilizationChartOption = {
+        title: {
+          text: '显卡占用 (%)'
+        },
+        tooltip: {
+          trigger: 'axis'
+        },
+        legend: {
+          data: []
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: []
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: []
+      };
+      let temperatureChartOption = {
+        title: {
+          text: '显卡温度 (℃)'
+        },
+        tooltip: {
+          trigger: 'axis'
+        },
+        legend: {
+          data: []
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: []
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: []
+      };
+      let powerChartOption = {
+        title: {
+          text: '显卡功耗 (W)'
+        },
+        tooltip: {
+          trigger: 'axis'
+        },
+        legend: {
+          data: []
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: []
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: []
+      };
+
+      let chartList = [
+        { chart: memoryUsedChart, option: memoryUsedChartOption },
+        { chart: utilizationChart, option: utilizationChartOption },
+        { chart: temperatureChart, option: temperatureChartOption },
+        { chart: powerChart, option: powerChartOption }
+      ];
+      let attached_gpus = 0;
+      $.ajax({
+        url: "/status",
+        type: "get",
+        timeout: 1000,
+        success: function (data) {
+          attached_gpus = data.attached_gpus;
+          for (let i = 0; i < attached_gpus; i++) {
+            chartList.forEach(value => {
+              value.option.legend.data.push(`GPU${i}`);
+              value.option.series.push({
+                name: `GPU${i}`,
+                type: "line",
+                data: [],
+                symbol: 'none',
+              });
+            });
+          }
+          data.status.forEach((value, index) => {
+            memoryUsedChartOption.series[index].data.push(value.memory_used);
+            utilizationChartOption.series[index].data.push(value.utilization);
+            temperatureChartOption.series[index].data.push(value.temperature);
+            powerChartOption.series[index].data.push(value.power_draw);
+          });
+          chartList.forEach(value => {
+            value.option.xAxis.data.push(data.timestamp);
+            value.chart.setOption(value.option);
+          });
+        },
+      });
+
+      const interval = 3;
+      function query() {
+        $.ajax({
+          url: "/status",
+          type: "get",
+          timeout: 1000,
+          success: function (data) {
+            data.status.forEach((value, index) => {
+              memoryUsedChartOption.series[index].data.push(value.memory_used);
+              utilizationChartOption.series[index].data.push(value.utilization);
+              temperatureChartOption.series[index].data.push(value.temperature);
+              powerChartOption.series[index].data.push(value.power_draw);
+            });
+            chartList.forEach(value => {
+              value.option.xAxis.data.push(data.timestamp);
+              value.chart.setOption(value.option);
+            });
+          },
+        });
+      }
+
+      setInterval(() => {
+        query();
+      }, interval * 1000);
+    });
+  </script>
+</body>
+
 </html>
