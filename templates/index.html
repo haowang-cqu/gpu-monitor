@@ -142,6 +142,8 @@
 
       function refreshChart() {
         chartList.forEach(c => {
+          c.chart.hideLoading();  // 隐藏加载动画
+          c.chart.setOption(c.option);
           c.option.series.forEach(s => {
             // 删除超过历史长度的数据
             while (true) {
@@ -149,7 +151,6 @@
               else break;
             }
           });
-          c.chart.hideLoading();  // 隐藏加载动画
           c.chart.setOption(c.option);
         });
       }
