@@ -81,13 +81,13 @@ def get_gpu_status(nvidia_smi_xml):
         status_list.append({
             # "gpu_id": gpu_id,
             # "product_name": gpu.find("product_name").text,
-            # "fan_speed": int(gpu.find("fan_speed").text.split()[0]),
+            "fan-speed": int(gpu.find("fan_speed").text.split()[0]),
             # "memory_total": int(gpu.find("fb_memory_usage/total").text.split()[0]),
-            "memory_used": int(gpu.find("fb_memory_usage/used").text.split()[0]),
+            "memory-used": int(gpu.find("fb_memory_usage/used").text.split()[0]),
             "utilization": int(gpu.find("utilization/gpu_util").text.split()[0]),
             "temperature": int(gpu.find("temperature/gpu_temp").text.split()[0]),
             # "power_limit": float(gpu.find("power_readings/power_limit").text.split()[0]),
-            "power_draw": float(gpu.find("power_readings/power_draw").text.split()[0]),
+            "power-draw": float(gpu.find("power_readings/power_draw").text.split()[0]),
             # "power_state": gpu.find("power_readings/power_state").text,
             # "process_number": len(gpu.findall(".//process_info")),
         })
