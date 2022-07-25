@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GPU状态监控 - 系统信息</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <link rel="icon" href="/static/favicon.ico">
+</head>
+
+<body>
+    <div class="container">
+        <h2 style="text-align: center;">GPU状态监控</h2>
+        <ul class="nav nav-tabs">
+            <li>
+                <a href="/index.html">状态监控</a>
+            </li>
+            <li>
+                <a href="/process.html">进程监控</a>
+            </li>
+            <li>
+                <a href="/smi.html">nvidia-smi</a>
+            </li>
+            <li class="active">
+                <a href="/system.html">系统信息</a>
+            </li>
+        </ul>
+
+        <div class="panel panel-info" style="margin-top: 1em;">
+            <div class="panel-heading">
+                <h3 class="panel-title">neofetch</h3>
+            </div>
+            <div class="panel-body">
+                <pre id="neofetch" style="margin-bottom: 0px;"></pre>
+            </div>
+        </div>
+
+        <div class="panel panel-info" style="margin-top: 1em;">
+            <div class="panel-heading">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <span class="input-group-addon">journalctl</span>
+                            <input type="text" class="form-control input-sm" id="journalctl-param" value="-b 0 -n 30">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <button id="get-log" class="btn btn-default btn-sm">获取系统日志</button>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-body">
+                <pre id="log" style="margin-bottom: 0px;"></pre>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/jquery-1.12.4.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script>
+        $(function () {
+            function getNeofetch() {
+                $.ajax({
+                    url: "/neofetch",
+                    type: "get",
+                    success: function (data) {
+                        $("#neofetch").html(data);
+                    },
+                });
+            }
+
+            function getLog() {
+                $.ajax({
+                    url: "/journalctl",
+                    type: "get",
+                    data: { param: $("#journalctl-param").val() },
+                    success: function (data) {
+                        $("#log").html(data);
+                    },
+                });
+            }
+
+            $("#get-log").click(function () {
+                getLog();
+            });
+
+            getNeofetch();
+            getLog();
+        });
+    </script>
+</body>
+
+</html>

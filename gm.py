@@ -7,7 +7,7 @@ import threading
 import subprocess
 from flask_cors import CORS
 import xml.etree.ElementTree as ET
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 
 
 app = Flask(__name__)
@@ -149,9 +149,25 @@ def api_process_html():
     return render_template("process.html")
 
 
+@app.route("/system.html")
+def api_system_html():
+    return render_template("system.html")
+
+
 @app.route("/nvidia-smi")
 def api_nvidia_smi():
     return subprocess.check_output(['nvidia-smi'])
+
+
+@app.route("/neofetch")
+def api_neofetch():
+    return subprocess.check_output(['neofetch', '--stdout']).strip()
+
+
+@app.route("/journalctl")
+def api_journalctl():
+    param = request.args.get("param", "")
+    return subprocess.check_output(["journalctl"] + param.split() + ['--no-pager'])
 
 
 @app.route("/process")
